@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELOTH Boot Sequence</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Press Start 2P font for the retro pixel aesthetic -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Custom font and shadow to mimic pixel art */
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+            text-shadow: 4px 4px 8px rgba(0, 255, 64, 0.7); /* Matching the Compose green glow */
+        }
+        
+        /* Error screen text styling (Sans-Serif, Italic, Light) */
+        .error-font {
+            font-family: sans-serif;
+            font-style: italic;
+            font-weight: 300;
+            line-height: 1.75rem; /* Equivalent to 28.sp */
+        }
+
+        /* Initial state for the title's off-screen position */
+        .title-start-position {
+            transform: translateY(-250px);
+        }
+        
+        /* The CSS transition for the smooth title movement */
+        #boot-sequence-container {
+            transition: transform 1500ms cubic-bezier(0.4, 0.0, 0.2, 1); /* FastOutSlowInEasing equivalent */
+        }
+
+        /* Styling for the red button */
+        .nes-button {
+            background-color: #C82400; /* Matching Color(0xFFC82400) */
+            box-shadow: 0 8px 0 #9E1C00; /* Darker 3D effect */
+            transition: all 0.1s ease-in-out;
+        }
+
+        .nes-button:active {
+            box-shadow: 0 2px 0 #9E1C00;
+            transform: translateY(6px);
+        }
+
+        /* Ensure the body and HTML cover the full viewport */
+        html, body {
+            height: 100%;
+            margin: 0;
+            background-color: black;
+        }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'eloth-red': '#C82400',
+                        'eloth-yellow': '#FCFF00',
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-black text-white antialiased">
+
+<div id="app" class="relative w-full h-full min-h-screen flex items-center justify-center overflow-hidden">
+    <!-- 1. Starfield Canvas Background -->
+    <canvas id="starfield" class="absolute inset-0 w-full h-full"></canvas>
+
+    <!-- 2. Main Content Container -->
+    <div id="content" class="relative z-10 w-full h-full flex items-center justify-center">
+
+        <!-- Boot Sequence and Button -->
+        <div id="boot-sequence-container" class="title-start-position flex flex-col items-center">
+            
+            <!-- ELOTH Title -->
+            <h1 id="eloth-title" class="pixel-font text-white text-7xl md:text-8xl tracking-widest transition-opacity duration-1000">
+                ELOTH
+            </h1>
+
+            <div class="h-8"></div>
+            
+            <!-- Start Button (Hidden initially) -->
+            <div id="start-button-container" class="opacity-0 transition-opacity duration-500 mt-8">
+                <button 
+                    id="start-button"
+                    onclick="handleStartClick()" 
+                    class="nes-button text-eloth-yellow pixel-font text-xl px-8 py-4 rounded-xl border-none h-14"
+                >
+                    Commencer !
+                </button>
+            </div>
+        </div>
+        
+        <!-- Error Screen (Hidden initially) -->
+        <div id="error-screen" class="hidden absolute inset-0 bg-black flex items-center justify-center transition-opacity duration-1000 opacity-0">
+             <p class="error-font text-center text-white text-lg md:text-xl p-8">
+                Erreur ! Le créateur de personnage n'a pas encore été créé.<br><br>
+                Merci d'attendre la version finale pour enfin créer vos personnage !<br><br>
+                <span class="text-sm">- Le développeur</span>
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- State and Constants ---
+    const app = {
+        state: 'BOOT_START', // BOOT_START | BUTTON_VISIBLE | FADE_OUT | ERROR_SCREEN
+        starCount: 300,
+        stars: [],
+        lastTime: 0,
+        speed: 0.005, // Speed factor for star movement
+        canvas: document.getElementById('starfield'),
+        ctx: null
+    };
+
+    // --- DOM Elements ---
+    const bootSequenceContainer = document.getElementById('boot-sequence-container');
+    const startButtonContainer = document.getElementById('start-button-container');
+    const elothTitle = document.getElementById('eloth-title');
+    const errorScreen = document.getElementById('error-screen');
+
+    // --- Starfield Implementation (Canvas API) ---
+
+    function initStarfield() {
+        if (!app.canvas.getContext) return;
+        app.ctx = app.canvas.getContext('2d');
+        resizeCanvas();
+
+        for (let i = 0; i < app.starCount; i++) {
+            app.stars.push({
+                x: Math.random() * app.canvas.width,
+                y: Math.random() * app.canvas.height,
+                size: Math.random() * 2 + 1,
+            });
+        }
+        window.addEventListener('resize', resizeCanvas);
+        app.lastTime = performance.now();
+        requestAnimationFrame(animateStarfield);
+    }
+
+    function resizeCanvas() {
+        app.canvas.width = window.innerWidth;
+        app.canvas.height = window.innerHeight;
+    }
+
+    function animateStarfield(currentTime) {
+        if (app.state === 'ERROR_SCREEN') return; // Stop starfield when error is visible
+
+        const deltaTime = currentTime - app.lastTime;
+        app.lastTime = currentTime;
+
+        // Clear canvas
+        app.ctx.fillStyle = 'black';
+        app.ctx.fillRect(0, 0, app.canvas.width, app.canvas.height);
+
+        app.ctx.fillStyle = 'white';
+        app.stars.forEach(star => {
+            // Move star down based on deltaTime
+            star.y += app.speed * deltaTime; 
+
+            // Wrap star around when it goes off screen (similar to modulo logic in Compose)
+            if (star.y > app.canvas.height) {
+                star.y = 0; // Reset to top
+                star.x = Math.random() * app.canvas.width; // New random X
+            }
+
+            // Draw star
+            app.ctx.globalAlpha = 0.7;
+            app.ctx.beginPath();
+            app.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            app.ctx.fill();
+        });
+        
+        requestAnimationFrame(animateStarfield);
+    }
+
+    // --- Boot Sequence Logic ---
+
+    function startBootSequence() {
+        // Step 1: Animate title down (after 100ms delay to ensure DOM update)
+        setTimeout(() => {
+            bootSequenceContainer.classList.remove('title-start-position');
+            bootSequenceContainer.classList.add('translate-y-0');
+
+            // Step 2: Wait for title animation to finish (1500ms)
+            setTimeout(() => {
+                app.state = 'BUTTON_VISIBLE';
+                // Step 3: Show the button with a fade-in (500ms transition)
+                startButtonContainer.classList.remove('opacity-0');
+                startButtonContainer.classList.add('opacity-100');
+            }, 1500);
+
+        }, 100); 
+    }
+
+    function handleStartClick() {
+        if (app.state !== 'BUTTON_VISIBLE') return;
+        app.state = 'FADE_OUT';
+        
+        // Hide boot sequence elements (1000ms fade-out)
+        elothTitle.style.opacity = '0';
+        startButtonContainer.style.opacity = '0';
+        
+        // Step 4: Wait for fade-out (1500ms total delay)
+        setTimeout(() => {
+            app.state = 'ERROR_SCREEN';
+            
+            // Hide the boot container completely
+            bootSequenceContainer.classList.add('hidden');
+            
+            // Show error screen with fade-in
+            errorScreen.classList.remove('hidden');
+            setTimeout(() => {
+                errorScreen.classList.add('opacity-100');
+            }, 50); // Small delay to trigger transition
+        }, 1500); 
+    }
+    
+    // --- Initialization ---
+    window.onload = function() {
+        initStarfield();
+        startBootSequence();
+    };
+
+</script>
+
+</body>
+</html>
