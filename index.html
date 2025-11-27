@@ -29,15 +29,15 @@
             transform: translateY(-250px);
         }
         
-        /* The CSS transition for the smooth title movement */
+        /* The CSS transition for the smooth title movement (5.6 second uniform descent) */
         #boot-sequence-container {
-            transition: transform 1500ms cubic-bezier(0.4, 0.0, 0.2, 1); /* FastOutSlowInEasing equivalent */
+            transition: transform 5600ms linear;
         }
 
         /* Styling for the red button */
         .nes-button {
-            background-color: #C82400; /* Matching Color(0xFFC82400) */
-            box-shadow: 0 8px 0 #9E1C00; /* Darker 3D effect */
+            background-color: #C82400; 
+            box-shadow: 0 8px 0 #9E1C00; 
             transition: all 0.1s ease-in-out;
         }
 
@@ -46,11 +46,45 @@
             transform: translateY(6px);
         }
 
+        /* Styling for the back button */
+        #back-button {
+            background-color: transparent;
+            border: none;
+            color: #FCFF00; /* Eloth Yellow for visibility */
+            font-size: 2rem;
+            line-height: 1.5rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            /* Added transition-opacity to HTML for smooth fade */
+            transition: color 0.2s ease, opacity 0.3s ease; 
+        }
+
+        #back-button:hover {
+            color: #ffffff; /* White on hover */
+        }
+
         /* Ensure the body and HTML cover the full viewport */
         html, body {
             height: 100%;
             margin: 0;
             background-color: black;
+        }
+        
+        /* --- RED FLASH EFFECT CSS (Controlled by JS for precision) --- */
+        #red-flash-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50px; 
+            height: 50px;
+            background-color: #C82400; 
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0); /* Start scaled down and centered */
+            opacity: 0; 
+            z-index: 50; 
+            pointer-events: none;
+            /* JS will manage the transform and opacity transitions */
         }
     </style>
     
@@ -69,15 +103,40 @@
 </head>
 <body class="bg-black text-white antialiased">
 
+<!-- Invisible Audio Element for Startup Sound -->
+<audio id="boot-sound" src="/assets/lancement.mp3" preload="auto"></audio> 
+<!-- Invisible Audio Element for Transition FX -->
+<audio id="transition-fx" src="/assets/fx_transition.mp3" preload="auto"></audio>
+
+
 <div id="app" class="relative w-full h-full min-h-screen flex items-center justify-center overflow-hidden">
     <!-- 1. Starfield Canvas Background -->
     <canvas id="starfield" class="absolute inset-0 w-full h-full"></canvas>
 
-    <!-- 2. Main Content Container -->
-    <div id="content" class="relative z-10 w-full h-full flex items-center justify-center">
+    <!-- Back Button (Top Left) - Starts hidden (opacity-0) -->
+    <button id="back-button" class="absolute top-4 left-4 z-50 pixel-font opacity-0" onclick="goBack()">
+        &lt;
+    </button>
 
-        <!-- Boot Sequence and Button -->
-        <div id="boot-sequence-container" class="title-start-position flex flex-col items-center">
+    <!-- Red Flash Element (Transition managed by JS) -->
+    <div id="red-flash-effect"></div>
+
+    <!-- 2. Main Content Container -->
+    <div id="content" class="relative z-10 w-full h-full flex flex-col items-center justify-center">
+
+        <!-- Initial "DÉMARRER" button overlay -->
+        <div id="initial-start" class="absolute inset-0 bg-black flex items-center justify-center z-20 transition-opacity duration-500">
+            <button 
+                id="demarrer-button"
+                onclick="startBootSequence()" 
+                class="nes-button text-eloth-yellow pixel-font text-xl px-8 py-4 rounded-xl border-none h-14"
+            >
+                DÉMARRER
+            </button>
+        </div>
+
+        <!-- Boot Sequence and Final Button (Starts hidden/off-screen) -->
+        <div id="boot-sequence-container" class="title-start-position absolute flex flex-col items-center opacity-0 transition-opacity duration-500">
             
             <!-- ELOTH Title -->
             <h1 id="eloth-title" class="pixel-font text-white text-7xl md:text-8xl tracking-widest transition-opacity duration-1000">
@@ -86,11 +145,11 @@
 
             <div class="h-8"></div>
             
-            <!-- Start Button (Hidden initially) -->
-            <div id="start-button-container" class="opacity-0 transition-opacity duration-500 mt-8">
+            <!-- Final Start Button (Hidden initially) -->
+            <div id="final-start-button-container" class="opacity-0 transition-opacity duration-500 mt-8">
                 <button 
-                    id="start-button"
-                    onclick="handleStartClick()" 
+                    id="final-start-button"
+                    onclick="handleFinalStartClick()" 
                     class="nes-button text-eloth-yellow pixel-font text-xl px-8 py-4 rounded-xl border-none h-14"
                 >
                     Commencer !
@@ -98,8 +157,8 @@
             </div>
         </div>
         
-        <!-- Error Screen (Hidden initially) -->
-        <div id="error-screen" class="hidden absolute inset-0 bg-black flex items-center justify-center transition-opacity duration-1000 opacity-0">
+        <!-- Error Screen (Hidden initially) - Removed transition classes -->
+        <div id="error-screen" class="hidden absolute inset-0 bg-black flex items-center justify-center opacity-0">
              <p class="error-font text-center text-white text-lg md:text-xl p-8">
                 Erreur ! Le créateur de personnage n'a pas encore été créé.<br><br>
                 Merci d'attendre la version finale pour enfin créer vos personnage !<br><br>
@@ -113,20 +172,61 @@
 <script>
     // --- State and Constants ---
     const app = {
-        state: 'BOOT_START', // BOOT_START | BUTTON_VISIBLE | FADE_OUT | ERROR_SCREEN
+        state: 'AWAIT_DEMARRER', 
         starCount: 300,
         stars: [],
         lastTime: 0,
-        speed: 0.005, // Speed factor for star movement
+        speed: 0.005, 
         canvas: document.getElementById('starfield'),
         ctx: null
     };
 
     // --- DOM Elements ---
+    const initialStartContainer = document.getElementById('initial-start');
     const bootSequenceContainer = document.getElementById('boot-sequence-container');
-    const startButtonContainer = document.getElementById('start-button-container');
+    const finalStartButtonContainer = document.getElementById('final-start-button-container');
     const elothTitle = document.getElementById('eloth-title');
     const errorScreen = document.getElementById('error-screen');
+    const bootSound = document.getElementById('boot-sound'); 
+    const redFlash = document.getElementById('red-flash-effect'); 
+    const backButton = document.getElementById('back-button');
+    const transitionFx = document.getElementById('transition-fx'); // New transition sound element
+
+    // --- History Navigation (Reset to initial state) ---
+    function goBack() {
+        // Only allow back navigation if not currently in a transition or boot state
+        if (app.state === 'BOOT_START' || app.state === 'FADE_OUT') return;
+        
+        // Stop any currently running sound
+        bootSound.pause();
+        bootSound.currentTime = 0; 
+
+        // Reset the application state
+        app.state = 'AWAIT_DEMARRER';
+        
+        // 1. Hide the error screen if visible
+        errorScreen.classList.add('hidden');
+        errorScreen.style.opacity = '0'; 
+
+        // 2. Hide elements that might be visible and reset opacity
+        bootSequenceContainer.classList.add('opacity-0');
+        finalStartButtonContainer.classList.add('opacity-0');
+        elothTitle.style.opacity = '1';
+        
+        // 3. Ensure the boot container is back to its starting off-screen position
+        bootSequenceContainer.classList.add('title-start-position');
+        bootSequenceContainer.classList.remove('relative');
+        bootSequenceContainer.classList.add('absolute');
+        
+        // 4. Show the initial DÉMARRER button
+        initialStartContainer.classList.remove('hidden');
+        setTimeout(() => {
+            initialStartContainer.classList.remove('opacity-0');
+        }, 50); // Small delay for opacity transition to work
+        
+        // 5. Hide the Back button when returning to the DÉMARRER menu
+        backButton.classList.add('opacity-0');
+    }
 
     // --- Starfield Implementation (Canvas API) ---
 
@@ -153,27 +253,22 @@
     }
 
     function animateStarfield(currentTime) {
-        if (app.state === 'ERROR_SCREEN') return; // Stop starfield when error is visible
+        if (app.state === 'ERROR_SCREEN') return;
 
         const deltaTime = currentTime - app.lastTime;
         app.lastTime = currentTime;
 
-        // Clear canvas
         app.ctx.fillStyle = 'black';
         app.ctx.fillRect(0, 0, app.canvas.width, app.canvas.height);
 
         app.ctx.fillStyle = 'white';
         app.stars.forEach(star => {
-            // Move star down based on deltaTime
             star.y += app.speed * deltaTime; 
-
-            // Wrap star around when it goes off screen (similar to modulo logic in Compose)
             if (star.y > app.canvas.height) {
-                star.y = 0; // Reset to top
-                star.x = Math.random() * app.canvas.width; // New random X
+                star.y = 0; 
+                star.x = Math.random() * app.canvas.width; 
             }
 
-            // Draw star
             app.ctx.globalAlpha = 0.7;
             app.ctx.beginPath();
             app.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
@@ -182,53 +277,107 @@
         
         requestAnimationFrame(animateStarfield);
     }
-
+    
     // --- Boot Sequence Logic ---
 
     function startBootSequence() {
-        // Step 1: Animate title down (after 100ms delay to ensure DOM update)
+        if (app.state !== 'AWAIT_DEMARRER') return;
+        app.state = 'BOOT_START';
+        
+        // Hide the back button while the main sequence is running
+        backButton.classList.add('opacity-0');
+
+        // 1. Hide the initial DÉMARRER button with fade-out
+        initialStartContainer.classList.add('opacity-0');
+        setTimeout(() => {
+            initialStartContainer.classList.add('hidden');
+        }, 500);
+
+        // 2. Make the boot sequence container visible (it's still off-screen)
+        bootSequenceContainer.classList.remove('opacity-0');
+        
+        // 3. Start the background sound (now allowed because of user click)
+        bootSound.src = "/assets/lancement.mp3"; 
+        bootSound.load();
+        bootSound.play().catch(e => console.error("Audio playback failed:", e));
+
+        // 4. Start the title descent animation (after a small delay to ensure visibility)
         setTimeout(() => {
             bootSequenceContainer.classList.remove('title-start-position');
-            bootSequenceContainer.classList.add('translate-y-0');
-
-            // Step 2: Wait for title animation to finish (1500ms)
+            bootSequenceContainer.classList.remove('absolute'); 
+            bootSequenceContainer.classList.add('relative'); 
+            
+            // 5. Wait for title animation to finish (5600ms new duration)
+            const newDuration = 5600; 
             setTimeout(() => {
+                // Stop the sound immediately when the descent finishes 
+                bootSound.pause();
+                bootSound.currentTime = 0; 
+                
                 app.state = 'BUTTON_VISIBLE';
-                // Step 3: Show the button with a fade-in (500ms transition)
-                startButtonContainer.classList.remove('opacity-0');
-                startButtonContainer.classList.add('opacity-100');
-            }, 1500);
+                // 6. Show the final "Commencer !" button with a fade-in (500ms transition)
+                finalStartButtonContainer.classList.remove('opacity-0');
+                finalStartButtonContainer.classList.add('opacity-100');
+
+                // *** CHANGE HERE: SHOW the back button now that the boot sequence is complete ***
+                backButton.classList.remove('opacity-0');
+                
+            }, newDuration); 
 
         }, 100); 
     }
 
-    function handleStartClick() {
+    function handleFinalStartClick() {
         if (app.state !== 'BUTTON_VISIBLE') return;
         app.state = 'FADE_OUT';
         
-        // Hide boot sequence elements (1000ms fade-out)
-        elothTitle.style.opacity = '0';
-        startButtonContainer.style.opacity = '0';
+        // Play the transition sound effect immediately
+        transitionFx.src = "/assets/fx_transition.mp3"; 
+        transitionFx.load();
+        transitionFx.play().catch(e => console.error("Transition audio playback failed:", e));
         
-        // Step 4: Wait for fade-out (1500ms total delay)
+        // Hide back button during the final transition (optional, but cleaner)
+        backButton.classList.add('opacity-0');
+        
+        // 1. Force the flash element to expand and appear instantly (no transition)
+        // This makes the red circle cover the entire screen immediately.
+        redFlash.style.transition = 'none'; 
+        redFlash.style.opacity = '1';
+        redFlash.style.transform = 'translate(-50%, -50%) scale(50)'; 
+        
+        // 2. Hide boot sequence elements immediately
+        elothTitle.style.opacity = '0';
+        finalStartButtonContainer.style.opacity = '0';
+
+        // 3. Schedule the fade-out after a minimal delay
         setTimeout(() => {
+            // Enable transition for opacity only (fade-out)
+            redFlash.style.transition = 'opacity 750ms ease-out'; 
+            redFlash.style.opacity = '0'; // Start fading out while staying expanded
+        }, 50); 
+        
+        // 4. Wait for the fade-out to complete (750ms) PLUS an extra 500ms buffer (1350ms total delay)
+        setTimeout(() => {
+            // The red flash is now invisible, but still expanded.
+            
             app.state = 'ERROR_SCREEN';
             
-            // Hide the boot container completely
+            // Hide the boot container completely 
             bootSequenceContainer.classList.add('hidden');
             
-            // Show error screen with fade-in
+            // Show error screen abruptly (no transition)
             errorScreen.classList.remove('hidden');
-            setTimeout(() => {
-                errorScreen.classList.add('opacity-100');
-            }, 50); // Small delay to trigger transition
-        }, 1500); 
+            errorScreen.style.opacity = '1'; 
+
+            // SHOW the back button now that the error message is fully displayed
+            backButton.classList.remove('opacity-0');
+            
+        }, 1350); 
     }
     
     // --- Initialization ---
     window.onload = function() {
         initStarfield();
-        startBootSequence();
     };
 
 </script>
