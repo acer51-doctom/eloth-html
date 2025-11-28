@@ -12,5 +12,4 @@ C'est un site qui aide pour le jeu de rôle sur table : Eloth !
 3. Accéder à `http://localhost:8080` dans un navigateur.
 
 ### Qu'est ce qui a été créé ?
-Le créateur de personnage est en création.
-Le bâton de Moloch est fini.
+Tout est fini et opérationnel.
