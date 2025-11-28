@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELOTH: Séquence de démarrage</title>
+    <title>ELOTH</title>
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Press Start 2P font for the retro pixel aesthetic -->
@@ -104,9 +105,9 @@
 <body class="bg-black text-white antialiased">
 
 <!-- Invisible Audio Element for Startup Sound -->
-<audio id="boot-sound" src="./assets/lancement.mp3" preload="auto"></audio> 
+<audio id="boot-sound" src="/assets/lancement.mp3" preload="auto"></audio> 
 <!-- Invisible Audio Element for Transition FX -->
-<audio id="transition-fx" src="./assets/fx_transition.mp3" preload="auto"></audio>
+<audio id="transition-fx" src="/assets/fx_transition.mp3" preload="auto"></audio>
 
 
 <div id="app" class="relative w-full h-full min-h-screen flex items-center justify-center overflow-hidden">
@@ -194,7 +195,7 @@
 
     // --- History Navigation (Reset to initial state) ---
     function goBack() {
-        // Only allow back navigation if not currently in a transition or boot state
+        // Prevent interaction during transition phases
         if (app.state === 'BOOT_START' || app.state === 'FADE_OUT') return;
         
         // Stop any currently running sound
@@ -207,17 +208,27 @@
         // 1. Hide the error screen if visible
         errorScreen.classList.add('hidden');
         errorScreen.style.opacity = '0'; 
+        
+        // 2. Make the boot container visible if coming from the error screen
+        bootSequenceContainer.classList.remove('hidden');
 
-        // 2. Hide elements that might be visible and reset opacity
+        // 3. Reset all visibility and position states for the title sequence
         bootSequenceContainer.classList.add('opacity-0');
         finalStartButtonContainer.classList.add('opacity-0');
-        elothTitle.style.opacity = '1';
         
-        // 3. Ensure the boot container is back to its starting off-screen position
+        // **FIX for Bug 2: Ensure the title is fully opaque and visible**
+        elothTitle.style.opacity = '1'; 
+        
+        // **FIX for Bug 1: Ensure the title container resets to the off-screen position**
+        // Reset positioning classes
         bootSequenceContainer.classList.add('title-start-position');
         bootSequenceContainer.classList.remove('relative');
         bootSequenceContainer.classList.add('absolute');
         
+        // Force the transform property back to the starting point for a clean descent next time
+        bootSequenceContainer.style.transform = 'translateY(-250px)';
+
+
         // 4. Show the initial DÉMARRER button
         initialStartContainer.classList.remove('hidden');
         setTimeout(() => {
@@ -297,13 +308,18 @@
         bootSequenceContainer.classList.remove('opacity-0');
         
         // 3. Start the background sound (now allowed because of user click)
-        bootSound.src = "./assets/lancement.mp3"; 
+        bootSound.src = "/assets/lancement.mp3"; 
         bootSound.load();
         bootSound.play().catch(e => console.error("Audio playback failed:", e));
 
         // 4. Start the title descent animation (after a small delay to ensure visibility)
         setTimeout(() => {
+            // Initiate descent by removing the starting position class
             bootSequenceContainer.classList.remove('title-start-position');
+            // Remove the hard transform override if it was set during goBack()
+            bootSequenceContainer.style.transform = ''; 
+            
+            // Switch positioning for the descent to work correctly with CSS transition
             bootSequenceContainer.classList.remove('absolute'); 
             bootSequenceContainer.classList.add('relative'); 
             
@@ -319,7 +335,7 @@
                 finalStartButtonContainer.classList.remove('opacity-0');
                 finalStartButtonContainer.classList.add('opacity-100');
 
-                // *** CHANGE HERE: SHOW the back button now that the boot sequence is complete ***
+                // SHOW the back button now that the boot sequence is complete
                 backButton.classList.remove('opacity-0');
                 
             }, newDuration); 
@@ -332,7 +348,7 @@
         app.state = 'FADE_OUT';
         
         // Play the transition sound effect immediately
-        transitionFx.src = "./assets/fx_transition.mp3"; 
+        transitionFx.src = "/assets/fx_transition.mp3"; 
         transitionFx.load();
         transitionFx.play().catch(e => console.error("Transition audio playback failed:", e));
         
