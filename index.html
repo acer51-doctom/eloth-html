@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ELOTH</title>
-    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Press Start 2P font for the retro pixel aesthetic -->
@@ -27,6 +27,7 @@
 
         /* Initial state for the title's off-screen position */
         .title-start-position {
+            /* Force title container off-screen */
             transform: translateY(-250px);
         }
         
@@ -173,7 +174,9 @@
 <script>
     // --- State and Constants ---
     const app = {
+        // State names: AWAIT_DEMARRER, BOOT_START, BUTTON_VISIBLE, FADE_OUT, ERROR_SCREEN
         state: 'AWAIT_DEMARRER', 
+        history: ['AWAIT_DEMARRER'], // To track navigation flow
         starCount: 300,
         stars: [],
         lastTime: 0,
@@ -193,6 +196,49 @@
     const backButton = document.getElementById('back-button');
     const transitionFx = document.getElementById('transition-fx'); // New transition sound element
 
+    // --- Title Animation Reset Helper ---
+    function resetTitleForAnimation() {
+        // 1. Temporarily disable the transition
+        bootSequenceContainer.style.transition = 'none'; 
+        
+        // 2. Set back to the initial off-screen position
+        bootSequenceContainer.classList.add('title-start-position'); // transform: translateY(-250px);
+        bootSequenceContainer.style.transform = ''; // Clear inline style if any
+        
+        // 3. Ensure visibility is restored
+        bootSequenceContainer.classList.remove('hidden');
+        bootSequenceContainer.classList.remove('opacity-0');
+        elothTitle.style.removeProperty('opacity');
+        finalStartButtonContainer.style.opacity = '0'; // Hide button for descent
+
+        // 4. Re-enable the transition and trigger the descent
+        setTimeout(() => {
+            bootSequenceContainer.style.transition = 'transform 5600ms linear, opacity 500ms';
+            // Start descent by removing the starting position class
+            bootSequenceContainer.classList.remove('title-start-position'); 
+            bootSequenceContainer.classList.remove('absolute'); 
+            bootSequenceContainer.classList.add('relative'); 
+        }, 50); // Small delay required for the CSS trick to register the position change
+        
+        // 5. Play the sound again
+        bootSound.play().catch(e => console.error("Audio playback failed:", e));
+        
+        // 6. Schedule state change and button visibility when descent is complete
+        const duration = 5600; 
+        setTimeout(() => {
+            bootSound.pause();
+            bootSound.currentTime = 0; 
+            
+            app.state = 'BUTTON_VISIBLE';
+            // Show the final "Commencer !" button with a fade-in
+            finalStartButtonContainer.classList.remove('opacity-0');
+            finalStartButtonContainer.style.removeProperty('opacity'); // Ensure inline opacity is cleared
+
+            backButton.classList.remove('opacity-0');
+            
+        }, duration + 100); // Add a small buffer
+    }
+
     // --- History Navigation (Reset to initial state) ---
     function goBack() {
         // Prevent interaction during transition phases
@@ -201,42 +247,47 @@
         // Stop any currently running sound
         bootSound.pause();
         bootSound.currentTime = 0; 
-
-        // Reset the application state
-        app.state = 'AWAIT_DEMARRER';
         
-        // 1. Hide the error screen if visible
+        // 1. Manage History and determine target state
+        if (app.history.length <= 1) return; 
+
+        app.history.pop();
+        const previousState = app.history[app.history.length - 1];
+        
+        // Temporarily set state to avoid immediate re-triggering while running reset
+        app.state = 'TRANSITIONING'; 
+
+        // 2. Hide common elements
         errorScreen.classList.add('hidden');
         errorScreen.style.opacity = '0'; 
         
-        // 2. Make the boot container visible if coming from the error screen
-        bootSequenceContainer.classList.remove('hidden');
-
-        // 3. Reset all visibility and position states for the title sequence
-        bootSequenceContainer.classList.add('opacity-0');
-        finalStartButtonContainer.classList.add('opacity-0');
-        
-        // **FIX for Bug 2: Ensure the title is fully opaque and visible**
-        elothTitle.style.opacity = '1'; 
-        
-        // **FIX for Bug 1: Ensure the title container resets to the off-screen position**
-        // Reset positioning classes
-        bootSequenceContainer.classList.add('title-start-position');
-        bootSequenceContainer.classList.remove('relative');
-        bootSequenceContainer.classList.add('absolute');
-        
-        // Force the transform property back to the starting point for a clean descent next time
-        bootSequenceContainer.style.transform = 'translateY(-250px)';
-
-
-        // 4. Show the initial DÉMARRER button
-        initialStartContainer.classList.remove('hidden');
-        setTimeout(() => {
-            initialStartContainer.classList.remove('opacity-0');
-        }, 50); // Small delay for opacity transition to work
-        
-        // 5. Hide the Back button when returning to the DÉMARRER menu
+        // Hide back button until transition is done
         backButton.classList.add('opacity-0');
+
+        // 3. Handle state-specific visibility
+        if (previousState === 'AWAIT_DEMARRER') {
+            // Target: DÉMARRER screen
+            app.state = 'AWAIT_DEMARRER';
+            initialStartContainer.classList.remove('hidden', 'opacity-0');
+            bootSequenceContainer.classList.add('opacity-0');
+            finalStartButtonContainer.classList.add('opacity-0');
+            
+            // Clear all positioning from boot sequence container
+            bootSequenceContainer.style.transition = 'none'; 
+            bootSequenceContainer.classList.add('title-start-position');
+            bootSequenceContainer.classList.add('absolute');
+            bootSequenceContainer.classList.remove('relative');
+            bootSequenceContainer.style.transform = ''; 
+
+        } else if (previousState === 'BUTTON_VISIBLE') {
+            // Target: Animated ELOTH Title screen (FIXED: Re-trigger the animation)
+            initialStartContainer.classList.add('hidden', 'opacity-0');
+            
+            // Re-trigger the full boot animation sequence
+            resetTitleForAnimation();
+            
+            // Note: app.state is set to 'BUTTON_VISIBLE' inside resetTitleForAnimation
+        }
     }
 
     // --- Starfield Implementation (Canvas API) ---
@@ -295,6 +346,9 @@
         if (app.state !== 'AWAIT_DEMARRER') return;
         app.state = 'BOOT_START';
         
+        // Track history
+        app.history.push('BUTTON_VISIBLE');
+        
         // Hide the back button while the main sequence is running
         backButton.classList.add('opacity-0');
 
@@ -307,18 +361,16 @@
         // 2. Make the boot sequence container visible (it's still off-screen)
         bootSequenceContainer.classList.remove('opacity-0');
         
-        // 3. Start the background sound (now allowed because of user click)
-        bootSound.src = "/assets/lancement.mp3"; 
-        bootSound.load();
+        // 3. Start the background sound 
         bootSound.play().catch(e => console.error("Audio playback failed:", e));
 
         // 4. Start the title descent animation (after a small delay to ensure visibility)
         setTimeout(() => {
+            // Ensure transition is back on
+            bootSequenceContainer.style.transition = 'transform 5600ms linear, opacity 500ms';
+            
             // Initiate descent by removing the starting position class
             bootSequenceContainer.classList.remove('title-start-position');
-            // Remove the hard transform override if it was set during goBack()
-            bootSequenceContainer.style.transform = ''; 
-            
             // Switch positioning for the descent to work correctly with CSS transition
             bootSequenceContainer.classList.remove('absolute'); 
             bootSequenceContainer.classList.add('relative'); 
@@ -333,7 +385,6 @@
                 app.state = 'BUTTON_VISIBLE';
                 // 6. Show the final "Commencer !" button with a fade-in (500ms transition)
                 finalStartButtonContainer.classList.remove('opacity-0');
-                finalStartButtonContainer.classList.add('opacity-100');
 
                 // SHOW the back button now that the boot sequence is complete
                 backButton.classList.remove('opacity-0');
@@ -347,23 +398,23 @@
         if (app.state !== 'BUTTON_VISIBLE') return;
         app.state = 'FADE_OUT';
         
-        // Play the transition sound effect immediately
-        transitionFx.src = "/assets/fx_transition.mp3"; 
-        transitionFx.load();
+        // Track history
+        app.history.push('ERROR_SCREEN');
+        
+        // Play the transition sound effect immediately 
         transitionFx.play().catch(e => console.error("Transition audio playback failed:", e));
         
-        // Hide back button during the final transition (optional, but cleaner)
+        // Hide back button during the final transition 
         backButton.classList.add('opacity-0');
         
         // 1. Force the flash element to expand and appear instantly (no transition)
-        // This makes the red circle cover the entire screen immediately.
         redFlash.style.transition = 'none'; 
         redFlash.style.opacity = '1';
         redFlash.style.transform = 'translate(-50%, -50%) scale(50)'; 
         
-        // 2. Hide boot sequence elements immediately
+        // 2. Hide boot sequence elements immediately using inline styles
         elothTitle.style.opacity = '0';
-        finalStartButtonContainer.style.opacity = '0';
+        finalStartButtonContainer.style.opacity = '0'; 
 
         // 3. Schedule the fade-out after a minimal delay
         setTimeout(() => {
@@ -374,14 +425,12 @@
         
         // 4. Wait for the fade-out to complete (750ms) PLUS an extra 500ms buffer (1350ms total delay)
         setTimeout(() => {
-            // The red flash is now invisible, but still expanded.
-            
             app.state = 'ERROR_SCREEN';
             
             // Hide the boot container completely 
             bootSequenceContainer.classList.add('hidden');
             
-            // Show error screen abruptly (no transition)
+            // Show error screen abruptly
             errorScreen.classList.remove('hidden');
             errorScreen.style.opacity = '1'; 
 
