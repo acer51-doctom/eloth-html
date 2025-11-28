@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ELOTH</title>
     <link rel="icon" href="./favicon.ico" type="image/x-icon">
-    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Press Start 2P font for the retro pixel aesthetic -->
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     
     <style>
@@ -121,31 +119,23 @@
 </head>
 <body class="bg-black text-white antialiased">
 
-<!-- Invisible Audio Element for Startup Sound -->
 <audio id="boot-sound" src="./assets/lancement.mp3" preload="auto"></audio> 
-<!-- Invisible Audio Element for Transition FX -->
 <audio id="transition-fx" src="./assets/fx_transition.mp3" preload="auto"></audio>
 
 
 <div id="app" class="relative w-full h-full min-h-screen flex items-center justify-center overflow-hidden">
-    <!-- 1. Starfield Canvas Background -->
     <canvas id="starfield" class="absolute inset-0 w-full h-full"></canvas>
 
-    <!-- Back Button (Top Left) - Starts hidden (opacity-0) -->
     <button id="back-button" class="absolute top-4 left-4 z-50 pixel-font opacity-0" onclick="goBack()">
         &lt;
     </button>
 
-    <!-- Red Flash Element (Transition managed by JS) -->
     <div id="red-flash-effect"></div>
 
-    <!-- Temporary Message Box (for "dead ends") -->
     <div id="message-box" class="hidden pixel-font text-sm md:text-base"></div>
 
-    <!-- 2. Main Content Container -->
     <div id="content" class="relative z-10 w-full h-full flex flex-col items-center justify-center">
 
-        <!-- Initial "DÉMARRER" button overlay -->
         <div id="initial-start" class="absolute inset-0 bg-black flex items-center justify-center z-20 transition-opacity duration-500">
             <button 
                 id="demarrer-button"
@@ -156,17 +146,14 @@
             </button>
         </div>
 
-        <!-- Boot Sequence and Final Button (Starts hidden/off-screen) -->
         <div id="boot-sequence-container" class="title-start-position absolute flex flex-col items-center opacity-0 transition-opacity duration-500">
             
-            <!-- ELOTH Title -->
             <h1 id="eloth-title" class="pixel-font text-white text-7xl md:text-8xl tracking-widest transition-opacity duration-1000">
                 ELOTH
             </h1>
 
             <div class="h-8"></div>
             
-            <!-- Final Start Button (Hidden initially) -->
             <div id="final-start-button-container" class="opacity-0 transition-opacity duration-500 mt-8">
                 <button 
                     id="final-start-button"
@@ -178,7 +165,6 @@
             </div>
         </div>
         
-        <!-- Selector Screen (New Content) -->
         <div id="selector-screen" class="hidden absolute inset-0 bg-black flex flex-col items-center justify-center opacity-0 transition-opacity duration-500">
             <p class="pixel-font text-white text-lg md:text-2xl mb-12 text-center px-4">
                 Que souhaitez-vous faire ?
@@ -186,19 +172,18 @@
             <div class="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8 w-full max-w-xl px-4">
                 <button 
                     onclick="redirectToRandomEffect()"
-                    class="nes-button flex-1 text-eloth-yellow pixel-font text-base md:text-xl px-6 py-4 rounded-xl border-none h-auto transition-transform hover:scale-[1.02]"
+                    class="nes-button flex-1 text-eloth-yellow pixel-font text-base md:text-xl px-6 py-4 rounded-xl border-none **h-auto**"
                 >
-                    Effet aléatoire
+                    Bâton de Moloch
                 </button>
                 <button 
                     onclick="handleCreateCharClick()"
-                    class="nes-button flex-1 text-eloth-yellow pixel-font text-base md:text-xl px-6 py-4 rounded-xl border-none h-auto transition-transform hover:scale-[1.02]"
+                    class="nes-button flex-1 text-eloth-yellow pixel-font text-base md:text-xl px-6 py-4 rounded-xl border-none **h-auto**"
                 >
                     Créer son personnage
                 </button>
             </div>
         </div>
-
     </div>
 </div>
 
@@ -479,18 +464,8 @@
     }
 
     function handleCreateCharClick() {
-        // Display a message box instead of an alert()
-        messageBox.textContent = "Créateur de personnage non disponible. Merci d'attendre la version finale.";
-        messageBox.classList.remove('hidden');
-        messageBox.style.opacity = '1';
-        
-        // Fade out and hide the message after 3 seconds
-        setTimeout(() => {
-            messageBox.style.opacity = '0';
-            setTimeout(() => {
-                messageBox.classList.add('hidden');
-            }, 500); // Wait for fade-out transition
-        }, 3000); 
+        // Redirect to the character creation page
+        window.location.href = 'personnage.html';
     }
     
     // --- Initialization ---
