@@ -121,7 +121,7 @@
     </div>
 
     <script>
-        // --- TABLES D12 (Âge, Yeux, Signe, Poids, Taille, Cheveux, Famille, Région) ---
+        // --- TABLES D12 (Âge, Yeux, Signe, Poids, Taille, Cheveux, Famille, Région, Lieu) ---
         
         // Âge, Yeux, Signe distinctif (D12)
         const AGE_EYES_SIGN_TABLE = [
@@ -164,43 +164,82 @@
         
         // Famille (D12) - Les résultats sont groupés par 4 pour chaque région.
         const FAMILY_TABLE = [
-            // Hautbade (Roll 1-2)
+            // Hautbade
             { rollMax: 3, region: "Hautbade", result: "Famille de commerçants" }, 
             { rollMax: 6, region: "Hautbade", result: "Voyageurs pour représentations artistiques" }, 
             { rollMax: 9, region: "Hautbade", result: "Famille d'artisans" }, 
             { rollMax: 12, region: "Hautbade", result: "Famille enlevée par la Confrérie" }, 
-            // Venetir (Roll 3-4)
+            // Venetir 
             { rollMax: 3, region: "Venetir", result: "Famille de criminels" }, 
             { rollMax: 6, region: "Venetir", result: "Opposants au pouvoir en place" }, 
             { rollMax: 9, region: "Venetir", result: "Recueilli(e) par un pêcheur" }, 
             { rollMax: 12, region: "Venetir", result: "Tous les membres massacrés" }, 
-            // Sybna (Roll 5-6)
+            // Sybna 
             { rollMax: 3, region: "Sybna", result: "Tous les membres sont en vie" }, 
             { rollMax: 6, region: "Sybna", result: "Partis dans une autre région" }, 
             { rollMax: 9, region: "Sybna", result: "Certains membres tués par une créature" }, 
             { rollMax: 12, region: "Sybna", result: "Grandi(e) dans un sanctuaire de l'Eloth" }, 
-            // Austral (Roll 7-8)
+            // Austral 
             { rollMax: 3, region: "Austral", result: "Famille noble" }, 
             { rollMax: 6, region: "Austral", result: "Famille noble qui soutient la Confrérie" }, 
             { rollMax: 9, region: "Austral", result: "Famille d'agriculteurs" }, 
             { rollMax: 12, region: "Austral", result: "A fui sa famille" }, 
-            // Oxydia (Roll 9-10)
-            { rollMax: 3, region: "Oxydia", result: "Recueilli(e) par une caravane marchande" }, 
-            { rollMax: 6, region: "Oxydia", result: "Vit en ermite" }, 
-            { rollMax: 9, region: "Oxydia", result: "Tous les membres sont morts" }, 
-            { rollMax: 12, region: "Oxydia", result: "Fait partie d'un groupe de hors-la-loi" }, 
-            // Inconnue (Roll 11-12)
+            // Oxydia (Extrapolé des images précédentes)
+            { rollMax: 3, region: "Oxydia", result: "Recueilli(e) par une caravane marchande" }, // Re-utiliser une entrée inconnue
+            { rollMax: 6, region: "Oxydia", result: "Vit en ermite" }, // Re-utiliser une entrée inconnue
+            { rollMax: 9, region: "Oxydia", result: "Tous les membres sont morts" }, // Re-utiliser une entrée inconnue
+            { rollMax: 12, region: "Oxydia", result: "Fait partie d'un groupe de hors-la-loi" }, // Re-utiliser une entrée inconnue
+            // Inconnue 
             { rollMax: 3, region: "Inconnue", result: "Recueilli(e) par une caravane marchande" }, 
             { rollMax: 6, region: "Inconnue", result: "Vit en ermite" }, 
-            { rollMax: 9, region: "Inconnue", result: "Tous les membres sont morts" }, 
-            { rollMax: 12, region: "Inconnue", result: "Fait partie d'un groupe de hors-la-loi" }
+            { rollMax: 9, region: "Inconnue", result: "Tous les membres de votre famille sont morts" }, 
+            { rollMax: 12, region: "Inconnue", result: "Faites partie d'un groupe de hors-la-loi" }
         ];
 
-        // Lieu de naissance (D100)
-        const BIRTHPLACE_TABLE = [
-            [20, "Désert"], [40, "Montagne"], [50, "Ville"], [60, "Ruelle (Bas-fonds)"], 
-            [70, "Forêt"], [80, "Village"], [90, "Marais"], [95, "Ruine Antique"], 
-            [99, "Un Autre Plan"], [100, "Prison"]
+        // Lieux Spécifiques (D12) - Remplaçant l'ancien D100 "Lieu de Naissance"
+        const SPECIFIC_LOCATION_TABLE = [
+            // Hautbade
+            { rollMax: 2, region: "Hautbade", result: "Chantebois" }, 
+            { rollMax: 4, region: "Hautbade", result: "Soissons" }, 
+            { rollMax: 6, region: "Hautbade", result: "Vertefeuille" }, 
+            { rollMax: 8, region: "Hautbade", result: "Port Luthes" }, 
+            { rollMax: 10, region: "Hautbade", result: "Praönnelle" }, 
+            { rollMax: 12, region: "Hautbade", result: "Contine" }, 
+            // Venetir
+            { rollMax: 2, region: "Venetir", result: "Port Luxes" }, 
+            { rollMax: 4, region: "Venetir", result: "Gourmet" }, 
+            { rollMax: 6, region: "Venetir", result: "Pareias" }, 
+            { rollMax: 8, region: "Venetir", result: "Orleig" }, 
+            { rollMax: 10, region: "Venetir", result: "Corel" }, 
+            { rollMax: 12, region: "Venetir", result: "Port Varis" }, 
+            // Sybna
+            { rollMax: 2, region: "Sybna", result: "Mont-conté" }, 
+            { rollMax: 4, region: "Sybna", result: "Rollot" }, 
+            { rollMax: 6, region: "Sybna", result: "Unster" }, 
+            { rollMax: 8, region: "Sybna", result: "MaroidII" }, 
+            { rollMax: 10, region: "Sybna", result: "Fort-Laroche" }, 
+            { rollMax: 12, region: "Sybna", result: "Tartfle" }, 
+            // Austral
+            { rollMax: 2, region: "Austral", result: "Aubépine" }, 
+            { rollMax: 4, region: "Austral", result: "Amaryllis" }, 
+            { rollMax: 6, region: "Austral", result: "Rosière" }, 
+            { rollMax: 8, region: "Austral", result: "Passiflore" }, 
+            { rollMax: 10, region: "Austral", result: "Grand'Crue" }, 
+            { rollMax: 12, region: "Austral", result: "Beaujardin" }, 
+            // Oxydia
+            { rollMax: 2, region: "Oxydia", result: "Port Argunas" }, 
+            { rollMax: 4, region: "Oxydia", result: "Castelaur" }, 
+            { rollMax: 6, region: "Oxydia", result: "Kassiteros" }, 
+            { rollMax: 8, region: "Oxydia", result: "Port Kryppos" }, 
+            { rollMax: 10, region: "Oxydia", result: "Ferrum" }, 
+            { rollMax: 12, region: "Oxydia", result: "Port Cobalt" }, 
+            // Inconnue (par extrapolation)
+            { rollMax: 2, region: "Inconnue", result: "Lieu Inconnu 1" }, 
+            { rollMax: 4, region: "Inconnue", result: "Lieu Inconnu 2" }, 
+            { rollMax: 6, region: "Inconnue", result: "Lieu Inconnu 3" }, 
+            { rollMax: 8, region: "Inconnue", result: "Lieu Inconnu 4" }, 
+            { rollMax: 10, region: "Inconnue", result: "Lieu Inconnu 5" }, 
+            { rollMax: 12, region: "Inconnue", result: "Lieu Inconnu 6" }
         ];
 
         // Mauvaise Fortune (D10)
@@ -259,25 +298,29 @@
         }
         
         /**
-         * Finds the result for the family table based on region and family roll.
+         * Finds the result for a region-dependent table (Family or Location).
          * @param {string} region The generated region string (e.g., "Hautbade").
-         * @param {number} familyRoll The dice roll result (1-12) used for the family.
-         * @returns {string} The corresponding family description.
+         * @param {number} roll The dice roll result (1-12).
+         * @param {Array<object>} table The table of region-dependent objects.
+         * @returns {string} The corresponding result description.
          */
-        function getFamilyResult(region, familyRoll) {
-            // Find the index range in the FAMILY_TABLE corresponding to the region
-            const familyRows = FAMILY_TABLE.filter(row => row.region === region);
+        function getRegionDependentResult(region, roll, table) {
+            // Filter the table to only consider rows for the determined region
+            const regionRows = table.filter(row => row.region === region);
             
-            if (familyRows.length === 0) return "Origine familiale inconnue.";
+            if (regionRows.length === 0) return `Résultat inconnu pour la région : ${region}.`;
 
-            // Use the D12 roll to determine the result within the region's 4 rows
-            for (const row of familyRows) {
-                if (familyRoll <= row.rollMax) {
+            // The original table is grouped by D12: [1-2], [3-4], [5-6], [7-8], [9-10], [11-12]
+            // We need to match the roll to the correct maxRoll (which are 2, 4, 6, 8, 10, 12)
+            for (const row of regionRows) {
+                // Find the first row for the region where the roll is less than or equal to its maxRoll
+                if (roll <= row.rollMax) {
                     return row.result;
                 }
             }
             
-            return familyRows[familyRows.length - 1].result; 
+            // Fallback for roll 12 if region rows were slightly off
+            return regionRows[regionRows.length - 1].result; 
         }
 
         /**
@@ -326,7 +369,7 @@
         const summaryDescription = document.getElementById('summary-description');
         
         function generateFullCharacter() {
-            // --- Tirages D12, D100 et D24 ---
+            // --- Tirages D12 et D10 ---
             
             // Âge, Yeux, Signe (D12)
             const rollAgeEyesSign = rollDice(12);
@@ -336,10 +379,6 @@
             const rollWeightSize = rollDice(12);
             const weightSizeResult = getResultFromTable(rollWeightSize, WEIGHT_SIZE_TABLE);
 
-            // Lieu de naissance (D100)
-            const rollBirthplace = rollDice(100);
-            const birthplace = getResultFromTable(rollBirthplace, BIRTHPLACE_TABLE);
-
             // Cheveux (D24 pour la coupe, D12 interne pour la couleur)
             const rollHair = rollDice(24);
             const hairResult = getHairResult(rollHair);
@@ -347,11 +386,14 @@
             // Région (D12)
             const rollRegion = rollDice(12);
             const region = getResultFromTable(rollRegion, REGION_TABLE);
+            
+            // Lieu Spécifique (D12) - Dépendant de la Région
+            const rollLocation = rollDice(12);
+            const location = getRegionDependentResult(region, rollLocation, SPECIFIC_LOCATION_TABLE);
 
-            // Famille (D12)
+            // Famille (D12) - Dépendant de la Région
             const rollFamily = rollDice(12);
-            // La table des familles dépend du résultat de la Région
-            const family = getFamilyResult(region, rollFamily);
+            const family = getRegionDependentResult(region, rollFamily, FAMILY_TABLE);
 
             // Fortune (D10 x 2)
             const rollGoodFortune = rollDice(10);
@@ -370,13 +412,12 @@
                 { 
                     label: "Cheveux", 
                     value: `${hairResult.cut} (${hairResult.color})`, 
-                    // Afficher les deux rolls: D24 pour la coupe et D12 pour la couleur
                     roll: `${hairResult.roll}, C:${hairResult.colorRoll}`, 
                     max: "24/12"
                 },
                 { label: "Signe Distinctif", value: ageEyesSignResult.sign, roll: rollAgeEyesSign, max: 12 },
                 { label: "Région", value: region, roll: rollRegion, max: 12 },
-                { label: "Lieu de Naissance", value: birthplace, roll: rollBirthplace, max: 100 },
+                { label: "Lieu Spécifique", value: location, roll: rollLocation, max: 12 },
                 { label: "Famille", value: family, roll: rollFamily, max: 12 },
                 { label: "Bonne Fortune", value: goodFortune, roll: rollGoodFortune, max: 10 },
                 { label: "Mauvaise Fortune", value: badFortune, roll: rollBadFortune, max: 10 },
@@ -394,7 +435,7 @@
             // 4. Generate the narrative summary with code styling
             summaryDescription.innerHTML = 
                 `Ce personnage est âgé de ${formatResult(ageEyesSignResult.age)} et vient de la région de ${formatResult(region)}. 
-                Il/Elle est né(e) à/dans ${formatResult(birthplace)}.
+                Il/Elle est né(e) à ${formatResult(location)}.
                 Il/Elle mesure ${formatResult(weightSizeResult.size)} et pèse ${formatResult(weightSizeResult.weight)}. 
                 Physiquement, il/elle a une coupe ${formatResult(hairResult.cut)} de couleur ${formatResult(hairResult.color)} et des yeux ${formatResult(ageEyesSignResult.eyes)}.
                 Son signe distinctif est : ${formatResult(ageEyesSignResult.sign)}.
