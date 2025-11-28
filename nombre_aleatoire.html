@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bâton de Moloch - Effet Aléatoire</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Press Start 2P font for the retro pixel aesthetic -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+        .nes-button {
+            /* Classic NES button red */
+            background-color: #C82400; 
+            box-shadow: 0 8px 0 #9E1C00; 
+            transition: all 0.1s ease-in-out;
+            cursor: pointer;
+        }
+        .nes-button:active {
+            box-shadow: 0 2px 0 #9E1C00;
+            transform: translateY(6px);
+        }
+        
+        /* Styling for the new top-left back button */
+        #back-button-top {
+            background-color: transparent;
+            border: none;
+            color: #FCFF00; /* Eloth Yellow for visibility */
+            font-size: 2rem;
+            line-height: 1.5rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            transition: color 0.2s ease; 
+        }
+
+        #back-button-top:hover {
+            color: #ffffff; /* White on hover */
+        }
+        
+        html, body {
+            height: 100%;
+            margin: 0;
+            background-color: #1a1a1a;
+        }
+        /* Style for the large centered number */
+        #roll-number {
+            text-shadow: 0 0 10px #FCFF00;
+        }
+        /* Readable font for the effect description */
+        #effect-description {
+            font-family: sans-serif;
+            line-height: 1.5;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'eloth-red': '#C82400',
+                        'eloth-yellow': '#FCFF00',
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-black text-white antialiased relative min-h-screen flex flex-col items-center justify-center p-4">
+    <!-- New Back Button (Top Left) -->
+    <button 
+        id="back-button-top" 
+        class="absolute top-4 left-4 z-50 pixel-font" 
+        onclick="window.history.back()"
+    >
+        &lt;
+    </button>
+    
+    <!-- Main Content Area -->
+    <div class="w-full max-w-2xl flex flex-col items-center justify-center">
+        
+        <!-- Title -->
+        <h1 class="pixel-font text-eloth-yellow text-4xl md:text-5xl mb-10 text-center">
+            Bâton de Moloch
+        </h1>
+        
+        <!-- Rolled Number -->
+        <p id="roll-number" class="pixel-font text-white text-8xl mb-8 transition-colors duration-200">
+            0
+        </p>
+        
+        <!-- Roll Button -->
+        <button 
+            id="roll-button"
+            onclick="generateRandomEffect()"
+            class="nes-button text-eloth-yellow pixel-font text-xl px-10 py-5 rounded-xl border-none h-16 mb-12 shadow-2xl disabled:opacity-50"
+            disabled
+        >
+            Lancer le dé
+        </button>
+
+        <!-- Loading/Status Message -->
+        <p id="status-message" class="text-sm text-gray-400 mb-4">Prêt à lancer le Bâton de Moloch!</p>
+
+        <!-- Effect Description Area -->
+        <div class="w-full text-center p-4 border-t-2 border-b-2 border-gray-700">
+            <p id="effect-description" class="text-white text-lg italic transition-opacity duration-300 opacity-0">
+                
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // --- Effects Data ---
+        // Manually verified 100 effects.
+        const EFFECTS = {
+            "1": "Transforme la cible en fromage",
+            "2": "Paralyse la cible",
+            "3": "Transforme la cible en poule",
+            "4": "Transforme la cible en gateau",
+            "5": "Transforme la cible en 20 écus d'or",
+            "6": "Transforme la cible en mutant de rang inférieur",
+            "7": "Transforme la cible en mutant de rang impitoyable",
+            "8": "Rend la cible invisible durant 1 jour",
+            "9": "Fait vomir la cible de façon incontrôlée",
+            "10": "Ratrécie la cible",
+            "11": "Agrandi la cible",
+            "12": "Fait perdre la vue à la cible",
+            "13": "Fait pousser deux bras à la cible",
+            "14": "Fait perdre l'ombre de la cible",
+            "15": "Fait pousser un oeil sur le front de la cible",
+            "16": "Soigne la cible de 20 pdv",
+            "17": "Soigne de toutes maledictions",
+            "18": "La cible se dédouble",
+            "19": "La cible change de sexe",
+            "20": "La cible perd son sexe et celui-ci devient vivant",
+            "21": "L'utilisateur echange sa place avec la cible",
+            "22": "La cible saigne de tous ses pors et perd 5 pdv",
+            "23": "La cible a des araignées qui lui sortent des oreilles",
+            "24": "La cible est couverte de poile",
+            "25": "La cible est envoyé dans le plan primordial",
+            "26": "La cible a un membre qui augmente",
+            "27": "Transforme la cible en liquide",
+            "28": "Transforme la cible en excrémant",
+            "29": "Transforme la cible en statut de pierre",
+            "30": "Transforme la cible en verre",
+            "31": "Transforme la cible en arbre",
+            "32": "Transforme la cible en lapin",
+            "33": "La cible est coupé en cube",
+            "34": "Transforme la cible en chat",
+            "35": "Transforme la cible en gelée vivante",
+            "36": "Transforme la cible en génie qui exauce un voeu",
+            "37": "La cible perd la moitié de ses pv de façon permanente",
+            "38": "La cible double ses pv",
+            "39": "La cible a du sang acide",
+            "40": "La cible peut projeter des éclairs avec ses doigts",
+            "41": "La cible peut projeter du feu avec ses doigts",
+            "42": "La cible a le visage d'un poulpe",
+            "43": "La cible a des tentacules à la place des mains",
+            "44": "La cible peut maintenant utiliser l'eloth commun",
+            "45": "La cible perd son pouvoir d'eloth",
+            "46": "La cible vieillie instantanement",
+            "47": "La cible rajeunie instantanemment",
+            "48": "La cible gagne 1 point de compétence",
+            "49": "L'apparence de la cible change",
+            "50": "La cible devient une nouvelle personne",
+            "51": "La cible devient un thérian",
+            "52": "La cible devient un asservi",
+            "53": "La cible devient un spectre",
+            "54": "La cible a la peau ecailleuse",
+            "55": "La cible lévite",
+            "56": "La cible a les jambes et les mains interverties",
+            "57": "La cible a ses mouvements ralenties",
+            "58": "La cible se transforme en escargot",
+            "59": "La cible se retrouve nue",
+            "60": "La couleur de peau de la cible change",
+            "61": "La cible meurt",
+            "62": "La peau de la cible a une odeur agréable",
+            "63": "Les dents de la cible pousse abondemment",
+            "64": "La cible ne souhaite se nourrir que de sang",
+            "65": "La peau de la cible a une odeur horrible",
+            "66": "La cible ne supporte plus la lumière du jour",
+            "67": "La peau de la cible durcie et obtient +1 en armure naturel",
+            "68": "La cible devient irrésistible",
+            "69": "Le corps de la cible se discort et sa tête devient son cul",
+            "70": "La cible se transforme en arme vivante",
+            "71": "La cible prend peur et fuit",
+            "72": "La cible a des pustules sur le visage",
+            "73": "La cible se change en vache",
+            "74": "La cible n'a peur de rien et n'a plus conscience du danger",
+            "75": "La cible a des gaz constants",
+            "76": "La cible perd sa voix",
+            "77": "La cible se fait pipi dessus",
+            "78": "La cible se met à danser",
+            "79": "La cible peut lire dans les pensées",
+            "80": "La cible devient docile",
+            "81": "La cible est sous votre contrôle",
+            "82": "Les cheveux de la cible poussent abondemment",
+            "83": "La cible perd ses dents",
+            "84": "La cible reçoit 5 pdv permanent",
+            "85": "La cible perd le D6",
+            "86": "La cible attrape la surette",
+            "87": "La cible perd le D8",
+            "88": "La cible attrape le mal pourpre",
+            "89": "La cible perd le D10",
+            "90": "La cible attrape la gratouille",
+            "91": "La cible perd le D12",
+            "92": "La cible attrape la pointe du Dorlis",
+            "93": "La cible perd un bras et a une tentacule à la place",
+            "94": "La cible attrape la fièvre des marais",
+            "95": "La cible perd ses cheveux",
+            "96": "La cible attrape la coulante",
+            "97": "La cible attrape la cendrée",
+            "98": "La cible attrape la lèpre",
+            "99": "La cible perd le D20",
+            "100": "La cible entrevoit le visage de Moloch et deviens fou"
+        };
+        
+        // Target duration for the roll animation in milliseconds
+        const TOTAL_ROLL_DURATION_MS = 6000; 
+        // Number of steps in the rolling animation
+        const ROLL_STEPS = 20; 
+
+        // --- DOM Elements ---
+        const rollButton = document.getElementById('roll-button');
+        const rollNumberElement = document.getElementById('roll-number');
+        const effectDescriptionElement = document.getElementById('effect-description');
+        const statusMessageElement = document.getElementById('status-message');
+
+        /**
+         * Initializes the application state.
+         */
+        function initializeApp() {
+            // Data is already loaded, so just enable the button and set status
+            rollButton.disabled = false;
+            statusMessageElement.textContent = "Prêt à lancer le Bâton de Moloch!";
+        }
+        
+        /**
+         * Recursively handles the progressive slowing of the dice roll display.
+         * @param {number} step The current step in the animation (from 1 to ROLL_STEPS).
+         * @param {number} finalRoll The calculated final result (1-100).
+         */
+        function animateRoll(step, finalRoll) {
+            if (step > ROLL_STEPS) {
+                // Animation complete: display final result
+                
+                // 1. Display the final result number
+                rollNumberElement.textContent = finalRoll;
+                rollNumberElement.classList.remove('text-white');
+                rollNumberElement.classList.add('text-eloth-yellow');
+                
+                // 2. Look up the effect
+                const effect = EFFECTS[finalRoll.toString()] || `[${finalRoll}] Effet inconnu.`;
+                effectDescriptionElement.textContent = effect;
+                
+                // 3. Display effect text and re-enable button
+                setTimeout(() => {
+                    effectDescriptionElement.style.opacity = '1';
+                    rollButton.disabled = false;
+                    statusMessageElement.textContent = "Résultat final !";
+                }, 100); 
+
+                return;
+            }
+            
+            // Calculate the delay for the current step. 
+            // Delay increases linearly to reach the TOTAL_ROLL_DURATION_MS goal.
+            // Example: For 20 steps and 6000ms, the initial delay is 0ms and the final delay is 600ms.
+            // (6000 / 20) * (step / 2) -> creates an increasing delay.
+            // A simple linear increase:
+            const totalDelayTime = TOTAL_ROLL_DURATION_MS / ROLL_STEPS;
+            // Linear scaling of the step duration from a small value up to the max total time divided by steps.
+            const currentDelay = totalDelayTime * (step / ROLL_STEPS) * ROLL_STEPS;
+            
+            // Use an exponential easing function to make it feel more organic
+            // Easing function: (step/ROLL_STEPS)^2
+            const easedProgress = Math.pow(step / ROLL_STEPS, 3); 
+            const inverseEasedProgress = 1 - Math.pow(1 - (step / ROLL_STEPS), 3);
+            
+            // Calculate current interval, starting fast and ending slow
+            const minInterval = 20; // Start fast
+            const maxInterval = TOTAL_ROLL_DURATION_MS / (ROLL_STEPS * 0.5); // End slow
+            const intervalDuration = minInterval + (maxInterval * inverseEasedProgress);
+            
+            // The time remaining in the total duration is also a good proxy for the interval
+            const remainingSteps = ROLL_STEPS - step + 1;
+            const timePerStep = TOTAL_ROLL_DURATION_MS / (ROLL_STEPS * (ROLL_STEPS + 1) / 2); // Average time of a linearly increasing step
+            const delay = (step) * timePerStep;
+
+            // Let's go with a simple, calculated delay that ensures TOTAL_ROLL_DURATION_MS is hit
+            // Calculate the total duration of the roll in ms
+            // The delay should increase exponentially to slow down smoothly.
+            const totalTimeWeight = ROLL_STEPS * (ROLL_STEPS + 1) / 2; // Sum of 1 to ROLL_STEPS
+            const delayUnit = TOTAL_ROLL_DURATION_MS / totalTimeWeight;
+            const currentStepDelay = delayUnit * step;
+
+
+            // 1. Update the display number (Random during animation)
+            const tempRoll = Math.floor(Math.random() * 100) + 1; 
+            rollNumberElement.textContent = tempRoll;
+            rollNumberElement.classList.remove('text-eloth-yellow');
+            rollNumberElement.classList.add('text-white');
+            statusMessageElement.textContent = `Lancement... (${Math.round((step / ROLL_STEPS) * 100)}%)`;
+
+            // 2. Schedule the next step with an increasing delay
+            setTimeout(() => {
+                animateRoll(step + 1, finalRoll);
+            }, currentStepDelay);
+        }
+
+        /**
+         * Generates a random D100 roll and starts the slow-down animation.
+         */
+        function generateRandomEffect() {
+            if (rollButton.disabled) return;
+            
+            // 1. Setup for the roll
+            rollButton.disabled = true;
+            effectDescriptionElement.style.opacity = '0';
+            rollNumberElement.textContent = '?';
+
+            // 2. Determine the final result
+            const finalRoll = Math.floor(Math.random() * 100) + 1;
+            
+            // 3. Start the recursive, slowing animation
+            animateRoll(1, finalRoll);
+        }
+        
+        // --- Initialization ---
+        window.onload = initializeApp;
+
+    </script>
+</body>
+</html>

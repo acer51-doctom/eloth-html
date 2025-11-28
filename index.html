@@ -88,6 +88,22 @@
             pointer-events: none;
             /* JS will manage the transform and opacity transitions */
         }
+
+        /* Message Box Styling */
+        #message-box {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #000;
+            border: 3px solid #FCFF00;
+            color: #FCFF00;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            z-index: 100;
+            box-shadow: 0 0 15px rgba(252, 255, 0, 0.5);
+            transition: opacity 0.5s ease;
+        }
     </style>
     
     <script>
@@ -122,6 +138,9 @@
 
     <!-- Red Flash Element (Transition managed by JS) -->
     <div id="red-flash-effect"></div>
+
+    <!-- Temporary Message Box (for "dead ends") -->
+    <div id="message-box" class="hidden pixel-font text-sm md:text-base"></div>
 
     <!-- 2. Main Content Container -->
     <div id="content" class="relative z-10 w-full h-full flex flex-col items-center justify-center">
@@ -159,13 +178,25 @@
             </div>
         </div>
         
-        <!-- Error Screen (Hidden initially) - Removed transition classes -->
-        <div id="error-screen" class="hidden absolute inset-0 bg-black flex items-center justify-center opacity-0">
-             <p class="error-font text-center text-white text-lg md:text-xl p-8">
-                Erreur ! Le créateur de personnage n'a pas encore été créé.<br><br>
-                Merci d'attendre la version finale pour enfin créer vos personnage !<br><br>
-                <span class="text-sm">- Le développeur</span>
+        <!-- Selector Screen (New Content) -->
+        <div id="selector-screen" class="hidden absolute inset-0 bg-black flex flex-col items-center justify-center opacity-0 transition-opacity duration-500">
+            <p class="pixel-font text-white text-lg md:text-2xl mb-12 text-center px-4">
+                Que souhaitez-vous faire ?
             </p>
+            <div class="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8 w-full max-w-xl px-4">
+                <button 
+                    onclick="redirectToRandomEffect()"
+                    class="nes-button flex-1 text-eloth-yellow pixel-font text-base md:text-xl px-6 py-4 rounded-xl border-none h-auto transition-transform hover:scale-[1.02]"
+                >
+                    Effet aléatoire
+                </button>
+                <button 
+                    onclick="handleCreateCharClick()"
+                    class="nes-button flex-1 text-eloth-yellow pixel-font text-base md:text-xl px-6 py-4 rounded-xl border-none h-auto transition-transform hover:scale-[1.02]"
+                >
+                    Créer son personnage
+                </button>
+            </div>
         </div>
 
     </div>
@@ -174,7 +205,7 @@
 <script>
     // --- State and Constants ---
     const app = {
-        // State names: AWAIT_DEMARRER, BOOT_START, BUTTON_VISIBLE, FADE_OUT, ERROR_SCREEN
+        // State names: AWAIT_DEMARRER, BOOT_START, BUTTON_VISIBLE, FADE_OUT, SELECTOR_SCREEN
         state: 'AWAIT_DEMARRER', 
         history: ['AWAIT_DEMARRER'], // To track navigation flow
         starCount: 300,
@@ -190,11 +221,12 @@
     const bootSequenceContainer = document.getElementById('boot-sequence-container');
     const finalStartButtonContainer = document.getElementById('final-start-button-container');
     const elothTitle = document.getElementById('eloth-title');
-    const errorScreen = document.getElementById('error-screen');
+    const selectorScreen = document.getElementById('selector-screen'); // Updated: Selector screen
     const bootSound = document.getElementById('boot-sound'); 
     const redFlash = document.getElementById('red-flash-effect'); 
     const backButton = document.getElementById('back-button');
-    const transitionFx = document.getElementById('transition-fx'); // New transition sound element
+    const transitionFx = document.getElementById('transition-fx'); 
+    const messageBox = document.getElementById('message-box'); // New: Message box
 
     // --- Title Animation Reset Helper ---
     function resetTitleForAnimation() {
@@ -258,8 +290,8 @@
         app.state = 'TRANSITIONING'; 
 
         // 2. Hide common elements
-        errorScreen.classList.add('hidden');
-        errorScreen.style.opacity = '0'; 
+        selectorScreen.classList.add('hidden'); // Hide the selector screen
+        selectorScreen.style.opacity = '0'; 
         
         // Hide back button until transition is done
         backButton.classList.add('opacity-0');
@@ -280,7 +312,7 @@
             bootSequenceContainer.style.transform = ''; 
 
         } else if (previousState === 'BUTTON_VISIBLE') {
-            // Target: Animated ELOTH Title screen (FIXED: Re-trigger the animation)
+            // Target: Animated ELOTH Title screen (Re-trigger the animation)
             initialStartContainer.classList.add('hidden', 'opacity-0');
             
             // Re-trigger the full boot animation sequence
@@ -315,7 +347,7 @@
     }
 
     function animateStarfield(currentTime) {
-        if (app.state === 'ERROR_SCREEN') return;
+        if (app.state === 'SELECTOR_SCREEN') return; // Stop stars in selector screen (optional)
 
         const deltaTime = currentTime - app.lastTime;
         app.lastTime = currentTime;
@@ -399,7 +431,7 @@
         app.state = 'FADE_OUT';
         
         // Track history
-        app.history.push('ERROR_SCREEN');
+        app.history.push('SELECTOR_SCREEN'); // Changed to SELECTOR_SCREEN
         
         // Play the transition sound effect immediately 
         transitionFx.play().catch(e => console.error("Transition audio playback failed:", e));
@@ -425,19 +457,40 @@
         
         // 4. Wait for the fade-out to complete (750ms) PLUS an extra 500ms buffer (1350ms total delay)
         setTimeout(() => {
-            app.state = 'ERROR_SCREEN';
+            app.state = 'SELECTOR_SCREEN'; // Changed to SELECTOR_SCREEN
             
             // Hide the boot container completely 
             bootSequenceContainer.classList.add('hidden');
             
-            // Show error screen abruptly
-            errorScreen.classList.remove('hidden');
-            errorScreen.style.opacity = '1'; 
+            // Show Selector screen abruptly
+            selectorScreen.classList.remove('hidden'); // Use selectorScreen
+            selectorScreen.style.opacity = '1'; 
 
-            // SHOW the back button now that the error message is fully displayed
+            // SHOW the back button now that the selector message is fully displayed
             backButton.classList.remove('opacity-0');
             
         }, 1350); 
+    }
+
+    // --- New Selector Functions ---
+    function redirectToRandomEffect() {
+        // Redirect to the new HTML page
+        window.location.href = 'nombre_aleatoire.html';
+    }
+
+    function handleCreateCharClick() {
+        // Display a message box instead of an alert()
+        messageBox.textContent = "Créateur de personnage non disponible. Merci d'attendre la version finale.";
+        messageBox.classList.remove('hidden');
+        messageBox.style.opacity = '1';
+        
+        // Fade out and hide the message after 3 seconds
+        setTimeout(() => {
+            messageBox.style.opacity = '0';
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 500); // Wait for fade-out transition
+        }, 3000); 
     }
     
     // --- Initialization ---
